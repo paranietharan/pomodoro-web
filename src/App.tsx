@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Play, Pause, RotateCcw, Moon, Sun, Coffee, Brain, Settings, X, Check, Volume2, VolumeX } from 'lucide-react'
 
-type TimerMode = 'work' | 'break'
+import { useTimer, type TimerMode } from './useTimer'
 
 const DEFAULT_WORK_MINS = 25
 const DEFAULT_BREAK_MINS = 5
@@ -29,10 +29,6 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false)
   const [draftWorkMins, setDraftWorkMins] = useState<number>(workMins)
   const [draftBreakMins, setDraftBreakMins] = useState<number>(breakMins)
-
-  const [mode, setMode] = useState<TimerMode>('work')
-  const [timeLeft, setTimeLeft] = useState<number>(workMins * 60)
-  const [isRunning, setIsRunning] = useState<boolean>(false)
 
   // Dark / Light theme state with localStorage persistence
   const [isDark, setIsDark] = useState<boolean>(() => {
@@ -104,35 +100,7 @@ export default function App() {
     }
   }, [isDark])
 
-  // Timer interval countdown
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null
-
-    if (isRunning) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            // Session completed: play sound tone
-            playAlarmSound()
-
-            // Automatically switch session mode
-            if (mode === 'work') {
-              setMode('break')
-              return breakMins * 60
-            } else {
-              setMode('work')
-              return workMins * 60
-            }
-          }
-          return prev - 1
-        })
-      }, 1000)
-    }
-
-    return () => {
-      if (interval) clearInterval(interval)
-    }
-  }, [isRunning, mode, workMins, breakMins, soundEnabled])
+  const { mode, timeLeft, isRunning, toggle, reset } = useTimer(workMins, breakMins, playAlarmSound)
 
   // Format mm:ss
   const formatTime = (seconds: number): string => {
@@ -148,20 +116,10 @@ export default function App() {
   }, [timeLeft, mode])
 
   // Control Handlers
-  const handleTogglePlay = () => {
-    setIsRunning((prev) => !prev)
-  }
-
-  const handleReset = () => {
-    setIsRunning(false)
-    setTimeLeft(mode === 'work' ? workMins * 60 : breakMins * 60)
-  }
-
+  const handleTogglePlay = toggle
+  const handleReset = () => reset()
   const handleModeSwitch = (newMode: TimerMode) => {
-    if (mode === newMode) return
-    setIsRunning(false)
-    setMode(newMode)
-    setTimeLeft(newMode === 'work' ? workMins * 60 : breakMins * 60)
+    if (mode !== newMode) reset(newMode)
   }
 
   // Settings Handlers
@@ -183,7 +141,7 @@ export default function App() {
 
     // Update current timer countdown if currently not running
     if (!isRunning) {
-      setTimeLeft(mode === 'work' ? validWork * 60 : validBreak * 60)
+      reset(mode, mode === 'work' ? validWork : validBreak)
     }
 
     setIsSettingsOpen(false)
