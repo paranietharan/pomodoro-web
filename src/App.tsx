@@ -1,3 +1,4 @@
+import { readPreference, writePreference } from './preferences'
 import { useState, useEffect, useRef } from 'react'
 import { Play, Pause, RotateCcw, Moon, Sun, Coffee, Brain, Settings, X, Check, Volume2, VolumeX } from 'lucide-react'
 
@@ -9,17 +10,17 @@ const DEFAULT_BREAK_MINS = 5
 export default function App() {
   // Configurable durations (stored in minutes, persisted in localStorage)
   const [workMins, setWorkMins] = useState<number>(() => {
-    const saved = localStorage.getItem('pomodoro-work-mins')
+    const saved = readPreference('pomodoro-work-mins')
     return saved ? Math.max(1, parseInt(saved, 10) || DEFAULT_WORK_MINS) : DEFAULT_WORK_MINS
   })
   const [breakMins, setBreakMins] = useState<number>(() => {
-    const saved = localStorage.getItem('pomodoro-break-mins')
+    const saved = readPreference('pomodoro-break-mins')
     return saved ? Math.max(1, parseInt(saved, 10) || DEFAULT_BREAK_MINS) : DEFAULT_BREAK_MINS
   })
 
   // Sound enable/disable preference (persisted in localStorage)
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
-    const saved = localStorage.getItem('pomodoro-sound')
+    const saved = readPreference('pomodoro-sound')
     return saved !== null ? saved === 'true' : true
   })
 
@@ -32,7 +33,7 @@ export default function App() {
 
   // Dark / Light theme state with localStorage persistence
   const [isDark, setIsDark] = useState<boolean>(() => {
-    const saved = localStorage.getItem('pomodoro-theme')
+    const saved = readPreference('pomodoro-theme')
     if (saved) return saved === 'dark'
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
@@ -41,7 +42,7 @@ export default function App() {
   const toggleSound = () => {
     setSoundEnabled((prev) => {
       const next = !prev
-      localStorage.setItem('pomodoro-sound', String(next))
+      writePreference('pomodoro-sound', String(next))
       return next
     })
   }
@@ -93,10 +94,10 @@ export default function App() {
     const root = document.documentElement
     if (isDark) {
       root.classList.add('dark')
-      localStorage.setItem('pomodoro-theme', 'dark')
+      writePreference('pomodoro-theme', 'dark')
     } else {
       root.classList.remove('dark')
-      localStorage.setItem('pomodoro-theme', 'light')
+      writePreference('pomodoro-theme', 'light')
     }
   }, [isDark])
 
@@ -136,8 +137,8 @@ export default function App() {
 
     setWorkMins(validWork)
     setBreakMins(validBreak)
-    localStorage.setItem('pomodoro-work-mins', validWork.toString())
-    localStorage.setItem('pomodoro-break-mins', validBreak.toString())
+    writePreference('pomodoro-work-mins', validWork.toString())
+    writePreference('pomodoro-break-mins', validBreak.toString())
 
     // Update current timer countdown if currently not running
     if (!isRunning) {
